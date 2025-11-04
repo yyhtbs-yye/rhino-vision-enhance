@@ -1,0 +1,48 @@
+_import: configs/train_base_sr.yaml
+
+_vars:
+
+  models:
+    net:
+      path: 'rhopsr.nn.baked.hat'
+      name: 'HAT'
+      params: 
+        upscale: 8
+        img_size: 64
+        embed_dim: 96
+        depths: [4, 4]
+        num_heads: [6, 6]
+        window_size: 16
+        upsampler: 'pixelshuffle'
+
+  losses: 
+    net:
+      path: 'rhopsr.nn.losses.weighted_loss'
+      name: 'WeightedLoss'
+      params:
+        base_loss_fn_str: mse
+      wrapper: # This wrapper is more complex needs parameters
+        mpath: 'rhopsr.nn.losses.wrappers.list_of_keys.ListOfKeys'
+        params:
+          keys: ["preds", "targets", "weights"]
+
+
+  max_epochs: 200
+
+  devices: [3]
+
+  train_batch_size: 256
+  valid_batch_size: 8
+  num_workers: 32
+
+  train_folder_paths:
+    gt: data/ffhq/ffhq_imgs/ffhq_256
+    lq: data/ffhq/ffhq_imgs/ffhq_32
+    
+  valid_folder_paths:
+    gt: data/celeba/subsets/celeba_256
+    lq: data/celeba/subsets/celeba_32
+
+  experiment_name: baked_hat_ffhq_32_256
+
+  ema_start: 0
