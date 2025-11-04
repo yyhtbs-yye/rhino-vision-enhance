@@ -34,3 +34,9 @@ data
 *.webp
 *.out
 *.json
+cyclone
+cyclone/*
+rhcore
+rhcore/*
+rhtrain
+rhtrain/*
