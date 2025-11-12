@@ -10,14 +10,14 @@ import torch.nn.functional as F
 # -------------------------
 # 1) Charbonnier / L1
 # -------------------------
-def charbonnier_loss(pred: torch.Tensor,
-                     target: torch.Tensor,
+def charbonnier_loss(preds: torch.Tensor,
+                     targets: torch.Tensor,
                      eps: float = 1e-3,
                      reduction: str = "mean") -> torch.Tensor:
     """
     Smooth L1 (Charbonnier) loss: sqrt((x - y)^2 + eps^2)
     """
-    diff = pred - target
+    diff = preds - targets
     loss = torch.sqrt(diff * diff + eps * eps)
     if reduction == "mean":
         return loss.mean()
@@ -46,11 +46,11 @@ def laplacian_map(x: torch.Tensor) -> torch.Tensor:
     return F.conv2d(x, k, padding=1, groups=c)
 
 
-def laplacian_l1_loss(pred: torch.Tensor,
-                      target: torch.Tensor,
+def laplacian_l1_loss(preds: torch.Tensor,
+                      targets: torch.Tensor,
                       reduction: str = "mean") -> torch.Tensor:
-    lp = laplacian_map(pred)
-    lt = laplacian_map(target)
+    lp = laplacian_map(preds)
+    lt = laplacian_map(targets)
     loss = torch.abs(lp - lt)
     if reduction == "mean":
         return loss.mean()
@@ -102,8 +102,8 @@ def _ssim_map(x, y, data_range=1.0, window_size=11, sigma=1.5):
     return ssim_map
 
 
-def ssim_loss(pred: torch.Tensor,
-              target: torch.Tensor,
+def ssim_loss(preds: torch.Tensor,
+              targets: torch.Tensor,
               data_range: float = 1.0,
               window_size: int = 11,
               sigma: float = 1.5,
@@ -112,7 +112,7 @@ def ssim_loss(pred: torch.Tensor,
     L_ssim = 1 - SSIM
     Input is assumed to be in range [0, data_range] (typically data_range=1)
     """
-    ssim_map = _ssim_map(pred, target, data_range, window_size, sigma)
+    ssim_map = _ssim_map(preds, targets, data_range, window_size, sigma)
     loss = 1.0 - ssim_map
     if reduction == "mean":
         return loss.mean()
@@ -121,8 +121,8 @@ def ssim_loss(pred: torch.Tensor,
     return loss
 
 
-def ms_ssim_loss(pred: torch.Tensor,
-                 target: torch.Tensor,
+def ms_ssim_loss(preds: torch.Tensor,
+                 targets: torch.Tensor,
                  data_range: float = 1.0,
                  weights: Optional[torch.Tensor] = None,
                  window_size: int = 11,
@@ -134,11 +134,11 @@ def ms_ssim_loss(pred: torch.Tensor,
     if weights is None:
         # Classic 5-scale weights
         weights = torch.tensor([0.0448, 0.2856, 0.3001, 0.2363, 0.1333],
-                               device=pred.device, dtype=pred.dtype)
+                               device=preds.device, dtype=preds.dtype)
 
     levels = len(weights)
     msssim_vals = []
-    x, y = pred, target
+    x, y = preds, targets
     for _ in range(levels):
         msssim_vals.append(_ssim_map(x, y, data_range, window_size, sigma).mean(dim=(1, 2, 3)))
         # Downsample by factor of 2
@@ -172,10 +172,10 @@ class FocalFrequencyLoss(nn.Module):
         self.reduction = reduction
         self.use_log = use_log
 
-    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def forward(self, preds: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         # 频域：rfft2，对最后两个维度做 FFT
-        F_pred = torch.fft.rfft2(pred, norm="ortho")
-        F_tgt = torch.fft.rfft2(target, norm="ortho")
+        F_pred = torch.fft.rfft2(preds, norm="ortho")
+        F_tgt = torch.fft.rfft2(targets, norm="ortho")
 
         diff = F_pred - F_tgt
         mag = torch.abs(diff)
@@ -228,42 +228,42 @@ class DeblurCompositeLoss(nn.Module):
         self.w_ffl = w_ffl
         self.ffl = FocalFrequencyLoss(alpha=ffl_alpha, use_log=ffl_use_log)
 
-    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def forward(self, preds: torch.Tensor, targets: torch.Tensor) -> Dict[str, torch.Tensor]:
         losses: Dict[str, torch.Tensor] = {}
 
         # 主损失
         if self.use_charbonnier:
-            losses["main"] = charbonnier_loss(pred, target, eps=self.charb_eps, reduction="mean")
+            losses["main"] = charbonnier_loss(preds, targets, eps=self.charb_eps, reduction="mean")
         else:
-            losses["main"] = F.l1_loss(pred, target)
+            losses["main"] = F.l1_loss(preds, targets)
 
         # 高频一致
         if self.w_lap > 0:
-            losses["lap"] = laplacian_l1_loss(pred, target)
+            losses["lap"] = laplacian_l1_loss(preds, targets)
         else:
-            losses["lap"] = pred.new_tensor(0.0)
+            losses["lap"] = preds.new_tensor(0.0)
 
         # 结构一致（SSIM / MS-SSIM）
         if self.w_ssim > 0:
             if self.use_msssim:
-                losses["ssim"] = ms_ssim_loss(pred, target, data_range=self.data_range)
+                losses["ssim"] = ms_ssim_loss(preds, targets, data_range=self.data_range)
             else:
-                losses["ssim"] = ssim_loss(pred, target, data_range=self.data_range)
+                losses["ssim"] = ssim_loss(preds, targets, data_range=self.data_range)
         else:
-            losses["ssim"] = pred.new_tensor(0.0)
+            losses["ssim"] = preds.new_tensor(0.0)
 
         # 频域（FFL）
         if self.w_ffl > 0:
-            losses["ffl"] = self.ffl(pred, target)
+            losses["ffl"] = self.ffl(preds, targets)
         else:
-            losses["ffl"] = pred.new_tensor(0.0)
+            losses["ffl"] = preds.new_tensor(0.0)
 
         total = (self.l_main * losses["main"]
                  + self.w_lap * losses["lap"]
                  + self.w_ssim * losses["ssim"]
                  + self.w_ffl * losses["ffl"])
         losses["total"] = total
-        return losses
+        return losses["total"]
 
 
 # -------------------------
@@ -272,8 +272,8 @@ class DeblurCompositeLoss(nn.Module):
 if __name__ == "__main__":
     # 假数据
     B, C, H, W = 2, 3, 128, 128
-    pred = torch.rand(B, C, H, W, requires_grad=True).cuda() if torch.cuda.is_available() else torch.rand(B, C, H, W, requires_grad=True)
-    target = torch.rand_like(pred)
+    preds = torch.rand(B, C, H, W, requires_grad=True).cuda() if torch.cuda.is_available() else torch.rand(B, C, H, W, requires_grad=True)
+    targets = torch.rand_like(preds)
 
     # 典型配置：Charbonnier + Lap(0.1) + SSIM(0.05) + FFL(0.1, alpha=1)
     criterion = DeblurCompositeLoss(
@@ -288,6 +288,6 @@ if __name__ == "__main__":
         ffl_use_log=False
     )
 
-    out = criterion(pred, target)
+    out = criterion(preds, targets)
     print({k: float(v.detach()) for k, v in out.items()})
     out["total"].backward()

@@ -16,14 +16,13 @@ boat:
 
   losses: 
     net:
-      path: 'rhopsr.nn.losses.weighted_loss'
-      name: 'WeightedLoss'
-      params:
-        base_loss_fn_str: mse
+      path: 'rhopsr.nn.losses.deblur_composite_loss'
+      name: 'DeblurCompositeLoss'
+      params: {}
       wrapper: # This wrapper is more complex needs parameters
         mpath: 'rhopsr.nn.losses.wrappers.list_of_keys.ListOfKeys'
         params:
-          keys: ["preds", "targets", "weights"]
+          keys: ["preds", "targets"]
           
   hyperparameters:
     curriculum:
@@ -104,7 +103,7 @@ _vars:
 
   max_epochs: 200
 
-  devices: [4]
+  devices: [5]
 
   train_batch_size: 256
   valid_batch_size: 32
