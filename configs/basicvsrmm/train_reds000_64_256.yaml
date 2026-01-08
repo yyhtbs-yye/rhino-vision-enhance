@@ -1,0 +1,57 @@
+_import: configs/base_video_metafile_config.yaml
+# _import: configs/base_video_config.yaml
+
+boat:
+  path: 'rhopsr.boats.base_restoration_boat'
+  name: 'BaseRestorationBoat'
+
+  models:
+    net:
+      path: 'rhopsr.nn.model_zoo.basicvsr.basicvsrmm'
+      name: 'BasicVSRMinusMinus'
+      params:
+        mid_channels: 64
+        num_blocks: 7
+        scale: 4
+        spynet_path: 'pretrained/spynet_sintel_final-3d2a1287.pth'
+  
+  losses: 
+    net:
+      path: 'rhopsr.nn.losses.haar_wavelet_loss'
+      name: 'HaarWaveletLoss'
+      params:
+        level_weights: [1.0, 0.7, 0.4]
+        low_freq_levels: final
+
+trainer: 
+  devices: $devices
+  max_epochs: $max_epochs
+  val_check_epochs: 10
+  state_save_epochs: 10
+
+_vars:
+
+  max_epochs: 20000
+
+  devices: [0, 1, 2, 3]
+
+  train_batch_size: 1
+  valid_batch_size: 1
+
+  inflate_factor: 8
+  num_workers: 32
+
+  train_meta_info_file: data/REDS/meta_info/meta_info_REDS_000.txt
+  valid_meta_info_file: data/REDS/meta_info/meta_info_REDS_000.txt
+
+  train_folder_paths:
+    gt: data/REDS/train_sharp
+    lq: data/REDS/train_sharp_bicubic/X4
+    
+  valid_folder_paths:
+    gt: data/REDS/train_sharp
+    lq: data/REDS/train_sharp_bicubic/X4
+
+  experiment_name: basicvsrmm_reds_64_256
+
+  ema_start: 0

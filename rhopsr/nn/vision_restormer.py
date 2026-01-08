@@ -46,13 +46,13 @@ class VisionRestormer(nn.Module):
             nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             if m.bias is not None: nn.init.zeros_(m.bias)
 
-    def forward(self, x, **args):
+    def forward(self, x, **kwargs):
 
-        x = self.stem(x, **args)                    # B C H W
+        x = self.stem(x, **kwargs)                    # B C H W
 
         x = self.pos_drop(x)                        # B C H W
 
-        x = self.body(x, **args)                    # B C H W
+        x = self.body(x, **kwargs)                    # B C H W
 
         x = self.norm(x)                            # B C H W
 

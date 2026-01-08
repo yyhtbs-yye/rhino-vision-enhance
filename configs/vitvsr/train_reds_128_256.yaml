@@ -1,0 +1,47 @@
+_import: configs/base_video_config.yaml
+
+boat:
+  path: 'rhopsr.boats.base_restoration_boat'
+  name: 'BaseRestorationBoat'
+
+  models:
+    net:
+      path: 'rhopsr.nn.model_zoo.vitsr.vitsr'
+      name: 'ViTSR'
+      params:
+        scale: 4
+  
+  losses: 
+    net:
+      path: 'torch.nn'
+      name: 'MSELoss'
+      params: {}
+
+
+trainer: 
+  devices: $devices
+  max_epochs: $max_epochs
+  val_check_epochs: 5
+  state_save_epochs: 5
+
+_vars:
+
+  max_epochs: 3000
+
+  devices: [0, 1, 2, 3]
+
+  train_batch_size: 4
+  valid_batch_size: 1
+  num_workers: 32
+
+  train_folder_paths:
+    gt: data/REDS/train_sharp
+    lq: data/REDS/train_sharp_bicubic/X2
+    
+  valid_folder_paths:
+    gt: data/REDS/val_sharp
+    lq: data/REDS/val_sharp_bicubic/X2
+
+  experiment_name: vitvsr_reds_128_256
+
+  ema_start: 0

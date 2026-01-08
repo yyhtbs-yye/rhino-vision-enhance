@@ -1,73 +1,39 @@
 import torch
 
 from rhcore.boats.base_boat import BaseBoat
-from rhcore.utils.build_components import build_module
 from rhtrain.utils.ddp_utils import move_to_device
+
+from einops import rearrange
 
 class BaseRestorationBoat(BaseBoat):
 
+    def maybe_get_ema(self, name):
+        return self.models[f'{name}_ema'] if f'{name}_ema' in self.models and self.use_ema else self.models[name]
+
+    @torch.no_grad()
     def predict(self, lq):
         
-        network_in_use = self.models['net_ema'] if self.use_ema and 'net_ema' in self.models else self.models['net']
+        net = self.maybe_get_ema('net')
             
-        restored = network_in_use(lq)
+        preds = net(lq)
         
-        return restored
+        return preds
 
     def training_calc_losses(self, batch):
 
         gt = batch['gt']
         lq = batch['lq']
 
-        batch_size = gt.size(0)
-
-        restored = self.models['net'](lq)
-        
-        train_output = {
-            'preds': restored,
-            'targets': gt,
-            'weights': torch.ones(batch_size, device=self.device),
-            **batch
-        }
+        preds = self.models['net'](lq)
         
         losses = {'total_loss': torch.tensor(0.0, device=self.device)}
 
-        losses['net'] = self.losses['net'](train_output)
+        losses['net'] = self.losses['net'](preds, gt)
         losses['total_loss'] += losses['net']
 
         return losses
 
-    def training_step(self, batch, batch_idx, epoch, *, scaler=None):
-        
-        active_keys = list(self.optimizers.keys())
-        
-        micro_batches = self._split_batch(batch, self.total_micro_steps)
-
-        self._zero_grad(active_keys, set_to_none=True)
-
-        micro_losses_list = []
-        for current_micro_step, micro_batch in enumerate(micro_batches):
-            micro_batch = move_to_device(micro_batch, self.device)
-            micro_losses = self.training_calc_losses(micro_batch)
-            micro_losses_list.append(micro_losses)
-
-            if isinstance(self.target_loss_key, str):
-                micrompathloss = micro_losses[self.target_loss_key] / self.total_micro_steps
-            elif isinstance(self.target_loss_key, list) or isinstance(self.target_loss_key, tuple):
-                micrompathloss = [micro_losses[k] / self.total_micro_steps for k in self.target_loss_key]
-
-            self.training_backpropagation(micrompathloss, current_micro_step, scaler)
-
-        self.training_gradient_descent(scaler, active_keys)
-        
-        self._update_ema()
-
-        self.training_lr_scheduling_step(active_keys)
-
-        return self._aggregate_loss_dicts(micro_losses_list)
-
-    # ------------------------------------ Visualization ---------------------------------------------
-
+    @torch.no_grad()
     def validation_step(self, batch, batch_idx, epoch):
 
         batch = move_to_device(batch, self.device)
@@ -76,14 +42,22 @@ class BaseRestorationBoat(BaseBoat):
         lq = batch['lq']
 
         with torch.no_grad():
+            
+            preds = self.predict(lq)
 
-            restored = self.predict(lq)
+            if gt.ndim == 5:
+                gt = rearrange(gt, 'b t c h w -> (b t) c h w')
+                preds = rearrange(preds, 'b t c h w -> (b t) c h w')
+                lq = rearrange(lq, 'b t c h w -> (b t) c h w')
 
-            valid_output = {'preds': restored, 'targets': gt,}
 
-            metrics = self._calc_metrics(valid_output)
+            valid_output = {'preds': preds, 'targets': gt,}
 
-            named_imgs = {'high res': gt, 'super res': restored, 'low res': lq,}
+            metrics = self.calc_metrics(valid_output)
+
+            named_imgs = {'high res': gt, 
+                          'super res': preds, 
+                          'low res': lq,}
 
         return metrics, named_imgs
     

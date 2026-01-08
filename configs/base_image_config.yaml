@@ -50,3 +50,65 @@ data:
       sampler:
         type: DefaultSampler
         shuffle: true
+
+
+optimization: 
+  net:
+    path: 'torch.optim'
+    name: 'Adam'
+    params:
+      lr: 0.0002
+      betas: [0.9, 0.999]
+      weight_decay: 0.0
+    lr_scheduler: {}
+
+ema:
+  net:
+    ema_decay: 0.999
+    ema_start: $ema_start
+
+trainer: 
+  devices: $devices
+  max_epochs: $max_epochs
+  val_check_epochs: 1
+  state_save_epochs: 1
+
+visualization:
+  save_images: true
+  first_batch_only: true
+  wnb: [1.0, 0.0]
+  num_vis_samples: 4
+
+validation: 
+  save_images: true
+  num_vis_samples: 4
+  target_metric_name: 'psnr'
+  metrics:
+    psnr:
+      path: 'torchmetrics.image'
+      name: 'PeakSignalNoiseRatio'
+      wrapper: 'rhcore.metrics.wrappers.dict_2_params.Dict2ListParams'
+      params:
+        data_range: 1.0
+    ssim:
+      path: 'torchmetrics.image'
+      name: 'StructuralSimilarityIndexMeasure'
+      wrapper: 'rhcore.metrics.wrappers.dict_2_params.Dict2ListParams'
+      params: {}
+
+logging:
+  root_dir: 'work_dirs'
+  name: $experiment_name
+  loggers:
+    tensorboard:
+      path: 'trainer.loggers.tensorboard'
+      name: 'TensorBoardLogger'
+      params:
+        log_dir: 'work_dirs'
+        name: $experiment_name
+
+callbacks:
+  - path: trainer.callbacks.state_cleaner
+    name: KeepTopKStateCallback
+    params:
+      top_k: 5

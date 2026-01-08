@@ -1,0 +1,45 @@
+_import: configs/base_image_config.yaml
+
+boat:
+  path: 'rhopsr.boats.base_restoration_boat'
+  name: 'BaseRestorationBoat'
+
+  models:
+    net:
+      path: 'rhopsr.nn.model_zoo.vitsr.vitsr'
+      name: 'ViTSR'
+      params: {}
+  
+  losses: 
+    net:
+      path: 'torch.nn'
+      name: 'MSELoss'
+      params: {}
+
+trainer: 
+  devices: $devices
+  max_epochs: $max_epochs
+  val_check_epochs: 5
+  state_save_epochs: 5
+
+_vars:
+
+  max_epochs: 3000
+
+  devices: [0, 1]
+
+  train_batch_size: 16
+  valid_batch_size: 1
+  num_workers: 32
+
+  train_folder_paths:
+    gt: data/ffhq/ffhq_imgs/ffhq_256
+    lq: data/ffhq/ffhq_imgs/ffhq_64
+    
+  valid_folder_paths:
+    gt: data/celeba/subsets/celeba_256
+    lq: data/celeba/subsets/celeba_64
+
+  experiment_name: vitsr_ffhq_64_256
+
+  ema_start: 0
