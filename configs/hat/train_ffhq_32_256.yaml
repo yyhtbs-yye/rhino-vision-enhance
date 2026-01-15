@@ -1,10 +1,13 @@
-_import: configs/train_base_sr.yaml
+_import: configs/base_image_config.yaml
 
-_vars:
+
+boat:
+  path: 'rhopsr.boats.base_restoration_boat'
+  name: 'BaseRestorationBoat'
 
   models:
     net:
-      path: 'rhopsr.nn.baked.hat'
+      path: 'rhopsr.nn.model_zoo.hat.hat_arch'
       name: 'HAT'
       params: 
         upscale: 8
@@ -17,17 +20,23 @@ _vars:
 
   losses: 
     net:
-      path: 'rhopsr.nn.losses.weighted_loss'
-      name: 'WeightedLoss'
+      path: 'rhopsr.nn.losses.haar_wavelet_loss'
+      name: 'HaarWaveletLoss'
       params:
-        base_loss_fn_str: mse
-      wrapper: # This wrapper is more complex needs parameters
-        mpath: 'rhopsr.nn.losses.wrappers.list_of_keys.ListOfKeys'
-        params:
-          keys: ["preds", "targets", "weights"]
+        level_weights: [1.0, 0.5, 0.3, 0.2]
 
+visualization:
+  save_images: true
+  first_batch_only: true
+  wnb: [0.5, 0.5]
+  num_vis_samples: 4
+
+_vars:
 
   max_epochs: 200
+
+  norm_mean: [0.5, 0.5, 0.5]
+  norm_std: [0.5, 0.5, 0.5]
 
   devices: [3]
 

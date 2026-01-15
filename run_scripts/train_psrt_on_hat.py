@@ -2,7 +2,7 @@ import types
 from rhtrain.rhino_train import main
 
 args_dict = {
-    'config': 'configs/hat/train_hat_ffhq_32_256_tiny.yaml',
+    'config': 'configs/psrt/train_reds_x4_on_hat.yaml',
     'resume_from': None,
 }
 

@@ -1,0 +1,75 @@
+_import: configs/base_video_metafile_config.yaml
+
+boat:
+  path: 'rhopsr.boats.base_restoration_boat'
+  name: 'BaseRestorationBoat'
+
+  models:
+    net:
+      path: 'rhopsr.nn.model_zoo.psrt.exv_psrt_arch'
+      name: 'ExvPSRT'
+      params: 
+        in_channels: 3
+        mid_channels: 64
+        embed_dim: 180
+        depths: [6, 6, 6]
+        num_heads: [6, 6, 6]
+        window_size: [3, 8, 8]
+        num_frames: 3
+        img_size: 64
+        patch_size: 1
+        cpu_cache_length: 100
+        is_low_res_input: True
+        spynet_path: 'pretrained/spynet_sintel_final-3d2a1287.pth'
+        spatial_ext_config: 
+          path: 'rhopsr.nn.model_zoo.hat.hat_arch'
+          name: 'HAT'
+          params:
+            upscale: 4
+            in_chans: 3
+            img_size: 64
+            window_size: 16
+            compress_ratio: 3
+            squeeze_factor: 30
+            conv_scale: 0.01
+            overlap_ratio: 0.5
+            img_range: 1.
+            depths: [6, 6, 6, 6, 6, 6]
+            embed_dim: 180
+            num_heads: [6, 6, 6, 6, 6, 6]
+            mlp_ratio: 2
+            upsampler: 'pixelshuffle'
+            resi_connection: '1conv'
+        spatial_ext_path: 'pretrained/Real_HAT_GAN_sharper.pth'
+
+  losses: 
+    net:
+      path: 'torch.nn'
+      name: 'MSELoss'
+      params: {}
+
+_vars:
+
+  max_epochs: 200
+
+  devices: [0]
+
+  train_batch_size: 1
+  valid_batch_size: 4
+  inflate_factor: 1
+  num_workers: 4
+  valid_meta_info_file: 'data/REDS/meta_info/meta_info_REDS_val.txt'
+  train_meta_info_file: 'data/REDS/meta_info/meta_info_REDS_train.txt'
+
+  train_folder_paths:
+    gt: data/REDS/train_sharp
+    lq: data/REDS/train_sharp_bicubic/X4
+    
+  valid_folder_paths:
+    gt: data/REDS/train_sharp
+    lq: data/REDS/train_sharp_bicubic/X4
+
+
+  experiment_name: hat_psrt_reds_32_256
+
+  ema_start: 0
