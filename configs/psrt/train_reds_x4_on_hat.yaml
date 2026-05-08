@@ -48,6 +48,12 @@ boat:
       name: 'MSELoss'
       params: {}
 
+trainer: 
+  devices: $devices
+  max_epochs: $max_epochs
+  val_check_epochs: 5
+  state_save_epochs: 5
+  
 _vars:
 
   max_epochs: 200
@@ -55,10 +61,11 @@ _vars:
   devices: [0]
 
   train_batch_size: 1
-  valid_batch_size: 4
+  valid_batch_size: 1
+  num_frames: 15
   inflate_factor: 1
-  num_workers: 4
-  valid_meta_info_file: 'data/REDS/meta_info/meta_info_REDS_val.txt'
+  num_workers: 1
+  valid_meta_info_file: 'data/REDS/meta_info/meta_info_REDS1_val.txt'
   train_meta_info_file: 'data/REDS/meta_info/meta_info_REDS_train.txt'
 
   train_folder_paths:

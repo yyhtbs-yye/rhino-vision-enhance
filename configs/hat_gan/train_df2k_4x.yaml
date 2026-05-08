@@ -1,0 +1,118 @@
+_import: configs/base_image_config.yaml
+
+boat:
+  path: 'rhopsr.boats.adversarial_restoration_boat'
+  name: 'AdversarialRestorationBoat'
+
+  models:
+    net:
+      path: 'rhopsr.nn.model_zoo.hat.hat_models'
+      name: 'HATModel'
+      params: 
+        model_name: 'HAT-Tiny'
+
+    critic:
+      path: 'rhopsr.nn.model_zoo.patchgan.patchgan_model'
+      name: 'PatchGANDiscriminator'
+      params:
+        in_channels: 3
+        base_channels: 64
+        num_layers: 3
+        norm: 'none'
+        use_spectral_norm: True
+
+  losses: 
+    pixel_loss:
+      path: 'torch.nn'
+      name: 'L1Loss'
+      params: {}
+
+    lpips_loss:
+      path: 'lpips'
+      name: 'LPIPS'
+      params:
+        net: 'vgg'
+
+    critic:
+      path: 'rhopsr.nn.losses.hinge_gan_loss'
+      name: 'HingeGANLoss'
+      params: {}
+
+  hyperparameters:
+
+    lambda_weights:
+      pixel_loss: 1.0
+      lpips_loss: 0.5
+      g_adv: 0.02
+      d_adv: 0.1
+
+    lpips_fadein:
+      path: 'rhcore.weight_schedulers.fadein'
+      name: 'SigmoidFadeIn'
+      params:
+        start_step: 3000
+        duration: 3000  
+        step_size: 5
+        eps: 0.000001
+
+    adv_fadein:
+      path: 'rhcore.weight_schedulers.fadein'
+      name: 'SigmoidFadeIn'
+      params:
+        start_step: 10000
+        duration: 3000
+        step_size: 10
+        eps: 0.000001
+
+optimization: 
+
+  net:
+    path: 'torch.optim'
+    name: 'Adam'
+    params:
+      lr: 0.0001
+      betas: [0.0, 0.99]
+      weight_decay: 0.0
+    lr_scheduler: {}
+  
+  critic:
+    path: 'torch.optim'
+    name: 'Adam'
+    params:
+      lr: 0.00005
+      betas: [0.0, 0.99]
+      weight_decay: 0.0
+    lr_scheduler: {}
+
+visualization:
+  save_images: true
+  first_batch_only: true
+  wnb: [1.0, 0.0]
+  num_vis_samples: 4
+
+_vars:
+
+  devices: [0, 1, 2, 3]
+
+  max_epochs: 600
+
+  norm_mean: [0.0, 0.0, 0.0]
+  norm_std: [1.0, 1.0, 1.0]
+  inflate_factor: 10
+
+
+  train_batch_size: 32
+  valid_batch_size: 8
+  num_workers: 32
+
+  train_folder_paths:
+    gt: data/df2k_download/datasets/DF2K/DF2K_train_HR
+    lq: data/df2k_download/datasets/DF2K/DF2K_train_LR_bicubic/X4
+    
+  valid_folder_paths:
+    gt: data/df2k_download/datasets/DIV2K/DIV2K_valid_HR
+    lq: data/df2k_download/datasets/DIV2K/DIV2K_valid_LR_bicubic/X4
+
+  experiment_name: hat_df2k_x4
+
+  ema_start: 0

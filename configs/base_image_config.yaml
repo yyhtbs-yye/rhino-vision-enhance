@@ -8,6 +8,7 @@ data:
         name: 'BasicImageDataset'
         params:
           # max_dataset_size: 256
+          inflate_factor: $inflate_factor
           folder_paths: $train_folder_paths
           data_prefix:
             gt: ''
@@ -17,8 +18,12 @@ data:
               keys: [gt, lq]
             - type: Normalize
               keys: [gt, lq]
-              mean: [0.5, 0.5, 0.5]
-              std: [0.5, 0.5, 0.5]
+              mean: $norm_mean
+              std: $norm_std
+            - type: PairedCrop
+              crop_size: 64
+              random_crop: true
+              scale_factor_dict: {'gt': 4, 'lq': 1}
       batch_size: $train_batch_size
       num_workers: $num_workers
       pin_memory: false
@@ -32,6 +37,7 @@ data:
         path: 'rhcore.data.datasets.basic_image_dataset'
         name: 'BasicImageDataset'
         params:
+          # max_dataset_size: 256
           folder_paths: $valid_folder_paths
           data_prefix:
             gt: ''
@@ -41,8 +47,12 @@ data:
               keys: [gt, lq]
             - type: Normalize
               keys: [gt, lq]
-              mean: [0.5, 0.5, 0.5]
-              std: [0.5, 0.5, 0.5]
+              mean: $norm_mean
+              std: $norm_std
+            - type: PairedCrop
+              crop_size: 128
+              random_crop: true
+              scale_factor_dict: {'gt': 4, 'lq': 1}
       batch_size: $valid_batch_size
       num_workers: $num_workers
       pin_memory: false
@@ -101,14 +111,14 @@ logging:
   name: $experiment_name
   loggers:
     tensorboard:
-      path: 'trainer.loggers.tensorboard'
+      path: 'rhcore.loggers.tensorboard_logger'
       name: 'TensorBoardLogger'
       params:
         log_dir: 'work_dirs'
         name: $experiment_name
 
 callbacks:
-  - path: trainer.callbacks.state_cleaner
+  - path: rhtrain.callbacks.state_cleaner
     name: KeepTopKStateCallback
     params:
       top_k: 5

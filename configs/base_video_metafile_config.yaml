@@ -16,11 +16,11 @@ data:
               keys: [gt, lq]
             - type: RandomTimeChunk
               keys: [gt, lq]
-              num_frames: 15
-            # - type: PairedCrop
-            #   crop_size: 64
-            #   random_crop: true
-            #   scale_factor_dict: {'gt': 4, 'lq': 1}
+              num_frames: $num_frames
+            - type: PairedCrop
+              crop_size: 64
+              random_crop: true
+              scale_factor_dict: {'gt': 4, 'lq': 1}
       batch_size: $train_batch_size
       num_workers: $num_workers
       pin_memory: true
@@ -90,11 +90,11 @@ validation:
       wrapper: 'rhcore.metrics.wrappers.dict_2_params.Dict2ListParams'
       params:
         data_range: 1.0
-    ssim:
-      path: 'torchmetrics.image'
-      name: 'StructuralSimilarityIndexMeasure'
-      wrapper: 'rhcore.metrics.wrappers.dict_2_params.Dict2ListParams'
-      params: {}
+    # ssim:
+    #   path: 'torchmetrics.image'
+    #   name: 'StructuralSimilarityIndexMeasure'
+    #   wrapper: 'rhcore.metrics.wrappers.dict_2_params.Dict2ListParams'
+    #   params: {}
 
 logging:
   root_dir: 'work_dirs'

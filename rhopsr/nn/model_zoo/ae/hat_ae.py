@@ -3,7 +3,7 @@ import math
 import torch
 import torch.nn as nn
 
-from rhopsr.nn.model_zoo.hat.modules import HAT
+from rhopsr.nn.model_zoo.hat.hat_modules import HAT
 from rhopsr.nn.model_zoo.ae.modules import Encoder, Decoder
 
 from einops import rearrange

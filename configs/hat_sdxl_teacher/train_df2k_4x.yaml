@@ -1,0 +1,121 @@
+_import: configs/base_image_config.yaml
+
+data:
+  path: rhcore.data.data_modules.ddp_data_module
+  name: DistTrainDistValidDataModule
+  config:
+    train_dataloader:
+      dataset:
+        path: 'rhcore.data.datasets.image_with_token_embedding_dataset'
+        name: 'ImageWithTokenEmbeddingDataset'
+        params:
+          # max_dataset_size: 256
+          embeds_folder: $train_embedding_folder_path
+          inflate_factor: $inflate_factor
+          folder_paths: $train_folder_paths
+          data_prefix:
+            gt: ''
+            lq: ''
+          pipeline:
+            - type: LoadImageFromFile
+              keys: [gt, lq]
+            - type: Normalize
+              keys: [gt, lq]
+              mean: $norm_mean
+              std: $norm_std
+            - type: PairedCrop
+              crop_size: 256
+              random_crop: true
+              scale_factor_dict: {'gt': 4, 'lq': 1}
+      batch_size: $train_batch_size
+      num_workers: $num_workers
+      pin_memory: false
+      persistent_workers: false
+      sampler:
+        type: DefaultSampler
+        shuffle: true
+
+boat:
+  path: 'rhopsr.boats.tsd_restoration_boat'
+  name: 'TargetScorePriorRestorationBoat'
+
+  models:
+    net:
+      path: 'rhopsr.nn.model_zoo.hat.hat_models'
+      name: 'HATModel'
+      params: 
+        model_name: 'HAT-Tiny'
+
+    teacher:
+      path: 'rhopsr.nn.prior_wrappers.sdxl_prior_wrapper'
+      name: 'SDXLPriorWrapper'
+      params: {}
+
+  losses: 
+    pixel_loss:
+      path: 'torch.nn'
+      name: 'L1Loss'
+      params: {}
+
+  hyperparameters:
+
+    lambda_weights:
+      pixel_loss: 1.0
+      prior_loss: 0.02
+      tsd_all_loss: 0.5
+      adaptor_loss: 0.5
+
+optimization: 
+
+  net:
+    path: 'torch.optim'
+    name: 'Adam'
+    params:
+      lr: 0.0001
+      betas: [0.0, 0.99]
+      weight_decay: 0.0
+    lr_scheduler: {}
+
+  teacher:
+    path: 'torch.optim'
+    name: 'Adam'
+    params:
+      lr: 0.0001
+      betas: [0.0, 0.99]
+      weight_decay: 0.0
+    lr_scheduler: {}
+
+visualization:
+  save_images: true
+  first_batch_only: true
+  wnb: [1.0, 0.0]
+  num_vis_samples: 4
+
+_vars:
+
+  devices: [0]
+
+  max_epochs: 600
+
+  norm_mean: [0.0, 0.0, 0.0]
+  norm_std: [1.0, 1.0, 1.0]
+  inflate_factor: 1
+
+
+  train_batch_size: 2
+  valid_batch_size: 8
+  num_workers: 32
+
+  train_embedding_folder_path: data/df2k_download/datasets/DF2K/DF2K_train_embeddings
+
+  train_folder_paths:
+    gt: data/df2k_download/datasets/DF2K/DF2K_train_HR
+    lq: data/df2k_download/datasets/DF2K/DF2K_train_LR_bicubic/X4
+    
+  valid_folder_paths:
+    gt: data/df2k_download/datasets/DIV2K/DIV2K_valid_HR
+    lq: data/df2k_download/datasets/DIV2K/DIV2K_valid_LR_bicubic/X4
+
+  experiment_name: hat_df2k_sdxl_x4
+
+  ema_start: 0

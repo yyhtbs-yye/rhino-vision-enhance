@@ -10,49 +10,49 @@ boat:
       path: 'rhopsr.nn.model_zoo.hat.hat_arch'
       name: 'HAT'
       params: 
-        upscale: 8
+        upscale: 4
         img_size: 64
         embed_dim: 96
-        depths: [4, 4]
-        num_heads: [6, 6]
-        window_size: 16
+        depths: [4, 4, 4, 6]
+        num_heads: [6, 6, 6, 6]
+        window_size: 8
         upsampler: 'pixelshuffle'
         load_pretrained: ~
 
   losses: 
     net:
-      path: 'rhopsr.nn.losses.haar_wavelet_loss'
-      name: 'HaarWaveletLoss'
-      params:
-        level_weights: [1.0, 0.5, 0.3, 0.2]
+      path: 'torch.nn'
+      name: 'L1Loss'
+      params: {}
 
 visualization:
   save_images: true
   first_batch_only: true
-  wnb: [0.5, 0.5]
+  wnb: [1.0, 0.0]
   num_vis_samples: 4
 
 _vars:
 
   max_epochs: 200
 
-  norm_mean: [0.5, 0.5, 0.5]
-  norm_std: [0.5, 0.5, 0.5]
+  norm_mean: [0.0, 0.0, 0.0]
+  norm_std: [1.0, 1.0, 1.0]
+  inflate_factor: 10
 
-  devices: [3]
+  devices: [0, 1, 2, 3]
 
-  train_batch_size: 256
+  train_batch_size: 16
   valid_batch_size: 8
   num_workers: 32
 
   train_folder_paths:
-    gt: data/ffhq/ffhq_imgs/ffhq_256
-    lq: data/ffhq/ffhq_imgs/ffhq_32
+    gt: data/DF2K/DF2K_train_HR
+    lq: data/DF2K/DF2K_train_LR_bicubic/X4
     
   valid_folder_paths:
     gt: data/celeba/subsets/celeba_256
-    lq: data/celeba/subsets/celeba_32
+    lq: data/celeba/subsets/celeba_64
 
-  experiment_name: baked_hat_ffhq_32_256
+  experiment_name: hat_train_df2k_test_celeba_32_256
 
   ema_start: 0

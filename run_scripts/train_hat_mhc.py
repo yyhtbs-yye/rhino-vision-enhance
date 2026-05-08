@@ -2,8 +2,8 @@ import types
 from rhtrain.rhino_train import main
 
 args_dict = {
-    'config': 'configs/hat/train_df2k_32_256.yaml',
-    'resume_from': 'work_dirs/hat_train_df2k_test_celeba_32_256/run_1/last.pt',
+    'config': 'configs/hat_mhc/train_ffhq_32_256.yaml',
+    'resume_from': None,
 }
 
 args = types.SimpleNamespace(**args_dict)
